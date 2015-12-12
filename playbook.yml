@@ -1,0 +1,145 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+  - name: ensure minimum utilities are installed
+    action: apt pkg={{ item }} state=present
+    with_items:
+      - htop
+      - tmux
+      - git
+      - curl
+      - unzip
+      - zip
+      - tree
+      - whois
+      - memstat
+      - s3cmd
+      - python-boto
+      - monit
+      - realpath
+      - apache2-utils
+      - imagemagick
+  tags: [utilities]
+
+- hosts: all
+  become: yes
+  tasks:
+    - ufw: logging=medium
+    - ufw: rule=limit port=ssh proto=tcp delete=yes
+    - ufw: rule=allow name=OpenSSH
+    - ufw: state=enabled policy=deny
+  tags: [ufw]
+
+- hosts: appservers
+  become: yes
+  tasks:
+    - apt: pkg=nodejs state=present
+    - apt: pkg=npm  state=present
+    - file: src=/usr/bin/nodejs dest=/usr/bin/node state=link
+    - npm: name=bower global=yes
+  tags: [node]
+
+- hosts: webservers
+  become: yes
+  tasks:
+    - group: name={{bot_username}}
+    - user: name={{bot_username}} comment="bot user" group={{bot_username}} groups= shell=/bin/bash
+    - file: dest="/home/{{bot_username}}" mode=0755
+    - authorized_key: user={{bot_username}} key="{{ lookup('file', 'secrets/pubkeys/' + item + '.pub') }}"
+      with_items:
+        - rngadam
+
+- hosts: webservers
+  become: yes
+  become_user: "{{bot_username}}"
+  tasks:
+    - file: dest=/home/{{bot_username}}/sites/{{item.hostname}}/static state=directory mode=0755
+      with_items: virtual_hosts
+
+- hosts: webservers
+  become: yes
+  tasks:
+    - name: Installs nginx web server
+      apt: pkg=nginx-extras state=installed update_cache=true
+      notify:
+        - start nginx
+  handlers:
+    - include: includes/handlers.yml
+  tags: [ nginx, nginx-service ]
+
+- hosts: webservers
+  become: yes
+  name: Remove default
+  tasks:
+    - file: dest=/etc/nginx/sites-enabled/default state=absent
+    - file: dest=/etc/nginx/sites-available/default state=absent
+  tags: [nginx, nginx-remove-default]
+
+- hosts: webservers
+  become: yes
+  name: Add virtual hosts
+  tasks:
+  - template: src=templates/etc/nginx/sites-available/{{item.template}}
+            dest=/etc/nginx/sites-available/{{item.hostname}}
+    with_items: virtual_hosts
+    notify: restart nginx
+  handlers:
+    - include: includes/handlers.yml
+  tags: [nginx, nginx-vhosts]
+
+- hosts: webservers
+  become: yes
+  name: validate nginx conf
+  tasks:
+    - command: nginx -t
+      changed_when: false
+  tags: [nginx, nginx-validate]
+
+- hosts: webservers
+  become: yes
+  name: Enable virtual hosts
+  tasks:
+   - file: state=link
+        src=/etc/nginx/sites-available/{{item.hostname}}
+        path=/etc/nginx/sites-enabled/{{item.hostname}}
+        owner=www-data
+     with_items: virtual_hosts
+     notify: restart nginx
+  handlers:
+    - include: includes/handlers.yml
+  tags: [nginx, nginx-conf, nginx-conf-only, nginx-vhosts]
+
+- hosts: webservers
+  become: yes
+  vars:
+    - bot_password: "{{lookup('file', 'secrets/nginx_bot_password')}}"
+  tasks:
+    - name: dependencies for htpasswd
+      action: apt pkg=python-passlib state=present
+    - htpasswd: path=/etc/nginx/passwdfile name={{bot_username}} password="{{bot_password}}" owner=root group=www-data mode=0640
+      notify: start nginx
+  handlers:
+    - include: includes/handlers.yml
+  tags: [ nginx, nginx-password, www ]
+
+- hosts: all
+  become: yes
+  tasks:
+    - ufw: rule=allow name="Nginx Full"
+  tags: [ufw]
+
+- hosts: webservers
+  gather_facts: True
+  become: yes
+  vars:
+    - hostname: hir.hackacademy.org
+  roles:
+   - role: letsencrypt
+     letsencrypt_webroot_path: "{{virtual_hosts[0].static_root}}"
+     letsencrypt_email: "{{contact_email}}"
+     letencrypt_server: https://acme-v01.api.letsencrypt.org/directory  # Only works if your domain is whitelisted
+     letsencrypt_cert_domains:
+      - "{{virtual_hosts[0].hostname}}"
+  tags: [ssl]

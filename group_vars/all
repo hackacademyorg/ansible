@@ -1,0 +1,10 @@
+---
+bot_username: hackacademy
+contact_email: it@hackacademy.org
+virtual_hosts:
+  - hostname: hir.hackacademy.org
+    template: hir.hackacademy.org
+    target: http://localhost:3000
+    static_root: "/home/hackacademy/sites/hir.hackacademy.org/static"
+    ssl_certificate: "/etc/letsencrypt/live/hir.hackacademy.org/cert.pem"
+    ssl_certificate_key: "/etc/letsencrypt/live/hir.hackacademy.org/privkey.pem"
