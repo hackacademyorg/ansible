@@ -3,6 +3,12 @@
 - hosts: all
   become: yes
   tasks:
+    -  apt: update_cache=yes upgrade=dist
+  tags: [updated]
+
+- hosts: all
+  become: yes
+  tasks:
   - name: ensure minimum utilities are installed
     action: apt pkg={{ item }} state=present
     with_items:
@@ -31,15 +37,6 @@
     - ufw: rule=allow name=OpenSSH
     - ufw: state=enabled policy=deny
   tags: [ufw]
-
-- hosts: appservers
-  become: yes
-  tasks:
-    - apt: pkg=nodejs state=present
-    - apt: pkg=npm  state=present
-    - file: src=/usr/bin/nodejs dest=/usr/bin/node state=link
-    - npm: name=bower global=yes
-  tags: [node]
 
 - hosts: webservers
   become: yes
@@ -143,3 +140,30 @@
      letsencrypt_cert_domains:
       - "{{virtual_hosts[0].hostname}}"
   tags: [ssl]
+
+- hosts: appservers
+  become: yes
+  tasks:
+    - apt: pkg={{item}} state=present
+      with_items:
+        - mongodb
+        - phantomjs
+    - service: name=mongodb state=started
+
+- hosts: appservers
+  become: yes
+  tasks:
+    - apt_repository: repo='ppa:chris-lea/node.js'
+    - apt_key: url=https://deb.nodesource.com/gpgkey/nodesource.gpg.key state=present
+    - apt_repository: repo='deb https://deb.nodesource.com/node_4.x trusty main' state=present
+    - apt: update_cache=yes
+    - apt: pkg=nodejs  state=present
+    - file: src=/usr/bin/nodejs dest=/usr/bin/node state=link
+    - npm: name=bower global=yes
+    - apt: pkg={{item}}
+      with_items:
+       - docker-engine
+       - linux-image-extra-3.19.0-37-generic
+       - linux-image-extra-virtual
+  tags: [nodejs]
+
