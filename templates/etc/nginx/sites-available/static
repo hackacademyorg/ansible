@@ -1,0 +1,6 @@
+server {
+    listen 80;
+    root {{item.static_root}}; 
+    server_name {{item.hostname}};
+    include /etc/nginx/snippets/webrootauth;
+}

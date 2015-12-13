@@ -68,11 +68,13 @@
     - template: src=templates/etc/nginx/snippets/{{item}} dest=/etc/nginx/snippets/{{item}}
       with_items:
         - webrootauth
+        - browser-update
+        - proxy-ws
+        - ssl
       notify: start nginx
   handlers:
     - include: includes/handlers.yml
   tags: [ nginx, nginx-service ]
-
 
 - hosts: webservers
   become: yes
@@ -134,6 +136,9 @@
   become_user: "{{bot_username}}"
   tasks:
     - git: repo=https://github.com/hackacademyorg/static.git dest="{{static_root}}" accept_hostkey=yes update=yes
+    - git: repo="{{item.static_git}}" dest="{{item.static_root}}" accept_hostkey=yes update=yes
+      with_items: virtual_hosts
+      when: item.static_git is defined
   tags: [static]
 
 - hosts: all
@@ -165,6 +170,14 @@
      letencrypt_server: https://acme-v01.api.letsencrypt.org/directory
      letsencrypt_cert_domains:
       - "{{virtual_hosts[1].hostname}}"
+
+   - role: letsencrypt
+     letsencrypt_webroot_path: "{{webroot_path}}"
+     letsencrypt_email: "{{contact_email}}"
+     letencrypt_server: https://acme-v01.api.letsencrypt.org/directory
+     letsencrypt_cert_domains:
+      - "{{virtual_hosts[2].hostname}}"
+
   tags: [ssl, vhosts]
 
 - hosts: appservers

@@ -18,6 +18,14 @@ virtual_hosts:
     ssl_certificate: "/etc/letsencrypt/live/members.hackacademy.org/cert.pem"
     ssl_certificate_key: "/etc/letsencrypt/live/members.hackacademy.org/privkey.pem"
 
+  - hostname: space.codersfield.com
+    template: hir.hackacademy.org
+    target: http://localhost:3000
+    static_root: "/home/hackacademy/sites/space.codersfield.com/static"
+    static_git: "https://github.com/codersfield/static.git"
+    ssl_certificate: "/etc/letsencrypt/live/space.codersfield.com/cert.pem"
+    ssl_certificate_key: "/etc/letsencrypt/live/space.codersfield.com/privkey.pem"
+
   - hostname: default
     template: default
 
