@@ -1,0 +1,6 @@
+server {
+    listen 80 default_server;
+    root /etc/letsencrypt/webrootauth;
+    include /etc/nginx/snippets/webrootauth;
+    return 301 https://$server_name$request_uri;
+}

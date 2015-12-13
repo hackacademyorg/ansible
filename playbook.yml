@@ -60,11 +60,19 @@
   tasks:
     - name: Installs nginx web server
       apt: pkg=nginx-extras state=installed update_cache=true
-      notify:
-        - start nginx
+      notify: start nginx
+    - template: src=templates/etc/nginx/conf.d/{{item}} dest=/etc/nginx/conf.d/{{item}}
+      with_items:
+        - websockets.conf
+    - file: dest=/etc/nginx/snippets state=directory
+    - template: src=templates/etc/nginx/snippets/{{item}} dest=/etc/nginx/snippets/{{item}}
+      with_items:
+        - webrootauth
+      notify: start nginx
   handlers:
     - include: includes/handlers.yml
   tags: [ nginx, nginx-service ]
+
 
 - hosts: webservers
   become: yes
@@ -84,7 +92,7 @@
     notify: restart nginx
   handlers:
     - include: includes/handlers.yml
-  tags: [nginx, nginx-vhosts]
+  tags: [nginx, nginx-vhosts, vhosts]
 
 - hosts: webservers
   become: yes
@@ -92,7 +100,7 @@
   tasks:
     - command: nginx -t
       changed_when: false
-  tags: [nginx, nginx-validate]
+  tags: [nginx, nginx-validate, vhosts]
 
 - hosts: webservers
   become: yes
@@ -106,7 +114,7 @@
      notify: restart nginx
   handlers:
     - include: includes/handlers.yml
-  tags: [nginx, nginx-conf, nginx-conf-only, nginx-vhosts]
+  tags: [nginx, nginx-conf, nginx-conf-only, nginx-vhosts, vhosts]
 
 - hosts: webservers
   become: yes
@@ -128,18 +136,29 @@
   tags: [ufw]
 
 - hosts: webservers
-  gather_facts: True
+  become: yes
+  tasks:
+    - file: dest="{{webroot_path}}" state=directory
+  tags: [ssl]
+
+- hosts: webservers
   become: yes
   vars:
     - hostname: hir.hackacademy.org
   roles:
    - role: letsencrypt
-     letsencrypt_webroot_path: "{{virtual_hosts[0].static_root}}"
+     letsencrypt_webroot_path: "{{webroot_path}}"
      letsencrypt_email: "{{contact_email}}"
-     letencrypt_server: https://acme-v01.api.letsencrypt.org/directory  # Only works if your domain is whitelisted
+     letencrypt_server: https://acme-v01.api.letsencrypt.org/directory
      letsencrypt_cert_domains:
       - "{{virtual_hosts[0].hostname}}"
-  tags: [ssl]
+   - role: letsencrypt
+     letsencrypt_webroot_path: "{{webroot_path}}"
+     letsencrypt_email: "{{contact_email}}"
+     letencrypt_server: https://acme-v01.api.letsencrypt.org/directory
+     letsencrypt_cert_domains:
+      - "{{virtual_hosts[1].hostname}}"
+  tags: [ssl, vhosts]
 
 - hosts: appservers
   become: yes

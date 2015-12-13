@@ -1,15 +1,6 @@
-server_tokens off; # for security-by-obscurity: stop displaying nginx version
-
-# this section is needed to proxy web-socket connections
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
-}
-
 # HTTP
 server {
     listen 80;
-    listen [::]:80 ipv6only=on;
 
     root {{item.static_root}}; 
     index index.html index.htm;
@@ -23,6 +14,7 @@ server {
     }
     {% endif %}
 
+    include /etc/nginx/snippets/webrootauth;
 }
 
 {% if item.ssl_certificate is defined %}
@@ -72,5 +64,6 @@ server {
             expires 30d;
         }
     }
+    include /etc/nginx/snippets/webrootauth;
 }
 {% endif %}
