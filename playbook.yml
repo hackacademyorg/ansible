@@ -146,9 +146,10 @@
   tasks:
     - apt: pkg={{item}} state=present
       with_items:
-        - mongodb
-        - phantomjs
-    - service: name=mongodb state=started
+        # uses docker instead
+        # - mongodb
+        # - service: name=mongodb state=started
+        - mongodb-clients
 
 - hosts: appservers
   become: yes
