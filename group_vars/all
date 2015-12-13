@@ -2,6 +2,7 @@
 bot_username: hackacademy
 contact_email: it@hackacademy.org
 webroot_path: /etc/letsencrypt/webrootauth
+static_root: /home/hackacademy/sites/static
 virtual_hosts:
   - hostname: hir.hackacademy.org
     template: hir.hackacademy.org
@@ -19,3 +20,7 @@ virtual_hosts:
 
   - hostname: default
     template: default
+
+  - hostname: static.hackacademy.org
+    template: static
+    static_root: "{{static_root}}"

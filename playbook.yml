@@ -129,6 +129,13 @@
     - include: includes/handlers.yml
   tags: [ nginx, nginx-password, www ]
 
+- hosts: webservers
+  become: yes
+  become_user: "{{bot_username}}"
+  tasks:
+    - git: repo=https://github.com/hackacademyorg/static.git dest="{{static_root}}" accept_hostkey=yes update=yes
+  tags: [static]
+
 - hosts: all
   become: yes
   tasks:
