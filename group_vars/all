@@ -20,7 +20,7 @@ virtual_hosts:
 
   - hostname: space.codersfield.com
     template: hir.hackacademy.org
-    target: http://localhost:3000
+    target: http://localhost:3002
     static_root: "/home/hackacademy/sites/space.codersfield.com/static"
     static_git: "https://github.com/codersfield/static.git"
     ssl_certificate: "/etc/letsencrypt/live/space.codersfield.com/cert.pem"
@@ -32,3 +32,7 @@ virtual_hosts:
   - hostname: static.hackacademy.org
     template: static
     static_root: "{{static_root}}"
+
+  - hostname: static.codersfield.com
+    template: static
+    static_root: "/home/hackacademy/sites/space.codersfield.com/static"

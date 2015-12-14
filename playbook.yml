@@ -200,10 +200,12 @@
     - apt: pkg=nodejs  state=present
     - file: src=/usr/bin/nodejs dest=/usr/bin/node state=link
     - npm: name=bower global=yes
+    - command: uname -r
+      register: kernel-version
     - apt: pkg={{item}}
       with_items:
-       - docker-engine
-       - linux-image-extra-3.19.0-37-generic
+       # downgraded docker-engine, see: https://github.com/arunoda/meteor-up/issues/758
+       - docker-engine:amd64=1.8.2-0~trusty
+       - "linux-image-extra-{{kernel-version}}"
        - linux-image-extra-virtual
   tags: [nodejs]
-
